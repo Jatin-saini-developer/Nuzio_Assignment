@@ -1,18 +1,25 @@
 import mongoose from "mongoose";
 
+import {
+  SUPPORTED_LANGUAGES,
+  SUPPORTED_PROFESSIONS,
+  SUPPORTED_VOICES,
+  SUPPORTED_BRIEF_LENGTHS,
+} from "../utils/onboardingConstants.js";
+
 const notificationPreferencesSchema = new mongoose.Schema(
   {
     email: {
       type: Boolean,
-      default: true,
+      default: null,
     },
     push: {
       type: Boolean,
-      default: true,
+      default: null,
     },
     dailyBrief: {
       type: Boolean,
-      default: true,
+      default: null,
     },
   },
   { _id: false },
@@ -28,6 +35,22 @@ const authProviderSchema = new mongoose.Schema(
     providerId: {
       type: String,
       trim: true,
+    },
+  },
+  { _id: false },
+);
+
+const onboardingMetaSchema = new mongoose.Schema(
+  {
+    completed: {
+      type: Boolean,
+      default: false,
+    },
+    currentStep: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 6,
     },
   },
   { _id: false },
@@ -54,13 +77,20 @@ const userSchema = new mongoose.Schema(
       type: authProviderSchema,
       default: () => ({}),
     },
+
+    // ── Onboarding preferences ──────────────────────────────────────────────
+
     language: {
       type: String,
+      enum: [...SUPPORTED_LANGUAGES, null],
       trim: true,
+      default: null,
     },
     profession: {
       type: String,
+      enum: [...SUPPORTED_PROFESSIONS, null],
       trim: true,
+      default: null,
     },
     niches: {
       type: [String],
@@ -68,19 +98,29 @@ const userSchema = new mongoose.Schema(
     },
     voice: {
       type: String,
+      enum: [...SUPPORTED_VOICES, null],
       trim: true,
+      default: null,
     },
     briefLength: {
       type: String,
-      enum: ["short", "medium", "long"],
-      default: "medium",
+      enum: [...SUPPORTED_BRIEF_LENGTHS, null],
+      default: null,
     },
     deliveryTime: {
       type: String,
       trim: true,
+      default: null,
     },
     notificationPreferences: {
       type: notificationPreferencesSchema,
+      default: () => ({ email: null, push: null, dailyBrief: null }),
+    },
+
+    // ── Onboarding progress meta ────────────────────────────────────────────
+
+    onboarding: {
+      type: onboardingMetaSchema,
       default: () => ({}),
     },
   },

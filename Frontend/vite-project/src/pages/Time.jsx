@@ -1,23 +1,80 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import OnboardingFrame from "../components/onboarding/OnboardingFrame";
 import TimePicker from "../components/onboarding/TimePicker";
+import { getOnboarding, updateOnboarding } from "../api/onboarding";
+
+/**
+ * Normalise a raw time string + period into the canonical "HH:MM AM/PM" format.
+ * e.g. ("7:00", "AM") → "07:00 AM"
+ *      ("12:30", "PM") → "12:30 PM"
+ */
+const normaliseDeliveryTime = (time, period) => {
+  const [hourStr, minute] = time.split(":");
+  const hour = parseInt(hourStr, 10);
+  const paddedHour = String(hour).padStart(2, "0");
+  return `${paddedHour}:${minute} ${period}`;
+};
+
+/**
+ * Parse a canonical delivery time string back to { time, period }.
+ * e.g. "07:00 AM" → { time: "7:00", period: "AM" }
+ */
+const parseDeliveryTime = (value) => {
+  if (!value) return { time: "7:00", period: "AM" };
+  const [timePart, period] = value.split(" ");
+  const [hour, minute] = timePart.split(":");
+  return {
+    time: `${parseInt(hour, 10)}:${minute}`,
+    period: period || "AM",
+  };
+};
 
 export default function Time() {
+  const navigate = useNavigate();
   const [period, setPeriod] = useState("AM");
   const [time, setTime] = useState("7:00");
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Load persisted delivery time on mount
+  useEffect(() => {
+    let isMounted = true;
+    getOnboarding()
+      .then(({ onboarding }) => {
+        if (isMounted && onboarding.deliveryTime) {
+          const parsed = parseDeliveryTime(onboarding.deliveryTime);
+          setTime(parsed.time);
+          setPeriod(parsed.period);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleContinue = async () => {
+    setIsSaving(true);
+    setError(null);
+    try {
+      const deliveryTime = normaliseDeliveryTime(time, period);
+      await updateOnboarding({ deliveryTime });
+      navigate("/notifications");
+    } catch (err) {
+      setError(err.message || "Failed to save. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <OnboardingFrame
       step={4}
-      onSkip={() => console.log("skip time")}
-      onContinue={() => {
-        console.log("Selected time:", {
-          time,
-          period,
-        });
-      }}
-      continueLabel="Continue →"
+      onSkip={() => navigate("/notifications")}
+      onContinue={handleContinue}
+      continueLabel={isSaving ? "Saving…" : "Continue →"}
     >
       {/* STEP */}
       <div className="absolute left-[24px] top-[108px]">
@@ -67,6 +124,19 @@ export default function Time() {
         >
           Nuzio will have your brief ready and waiting each morning.
         </p>
+
+        {/* Inline error */}
+        {error && (
+          <p style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: "9px",
+            color: "#FF6B6B",
+            marginTop: "8px",
+            letterSpacing: "0.5px",
+          }}>
+            ✕ {error}
+          </p>
+        )}
       </div>
 
       {/* AM / PM */}

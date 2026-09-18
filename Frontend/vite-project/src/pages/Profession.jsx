@@ -1,17 +1,52 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import OnboardingFrame from "../components/onboarding/OnboardingFrame";
 import ChoiceChip from "../components/onboarding/ChoiceChip";
 import { professions } from "../data/onboardingData";
+import { getOnboarding, updateOnboarding } from "../api/onboarding";
 
 export default function Profession() {
-  const [selected, setSelected] = useState("Technology");
+  const navigate = useNavigate();
+  const [selected, setSelected] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Load persisted profession on mount
+  useEffect(() => {
+    let isMounted = true;
+    getOnboarding()
+      .then(({ onboarding }) => {
+        if (isMounted && onboarding.profession) {
+          setSelected(onboarding.profession);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleContinue = async () => {
+    if (!selected) return;
+    setIsSaving(true);
+    setError(null);
+    try {
+      await updateOnboarding({ profession: selected });
+      navigate("/niches");
+    } catch (err) {
+      setError(err.message || "Failed to save. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <OnboardingFrame
       step={1}
-      onSkip={() => console.log("skip profession")}
-      onContinue={() => console.log("continue profession")}
+      onSkip={() => navigate("/niches")}
+      onContinue={handleContinue}
+      continueLabel={isSaving ? "Saving…" : "Continue →"}
     >
       {/* Heading */}
       <div className="absolute left-[24px] top-[108px]">
@@ -59,6 +94,19 @@ export default function Profession() {
         >
           We'll tune every brief to what actually moves your day.
         </p>
+
+        {/* Inline error */}
+        {error && (
+          <p style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: "9px",
+            color: "#FF6B6B",
+            marginTop: "8px",
+            letterSpacing: "0.5px",
+          }}>
+            ✕ {error}
+          </p>
+        )}
       </div>
 
       {/* Choices */}

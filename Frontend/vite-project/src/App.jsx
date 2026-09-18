@@ -3,10 +3,12 @@ import Splash from "./pages/Splash";
 import Language from "./pages/Language";
 import Login from "./pages/Login";
 import Profession from "./pages/Profession";
+import Niches from "./pages/Niches";
 import Voice from "./pages/Voice";
 import Time from "./pages/Time";
 import Notifications from "./pages/Notifications";
 import AllSet from "./pages/AllSet";
+import Home from "./pages/Home";
 
 export default function App() {
   return (
@@ -16,11 +18,12 @@ export default function App() {
         <Route path="/language" element={<Language />} />
         <Route path="/login" element={<Login />} />
         <Route path="/profession" element={<Profession />} />
+        <Route path="/niches" element={<Niches />} />
         <Route path="/voice" element={<Voice />} />
         <Route path="/time" element={<Time />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/all-set" element={<AllSet />} />
-
+        <Route path="/home" element={<Home />} />
       </Routes>
     </BrowserRouter>
   );

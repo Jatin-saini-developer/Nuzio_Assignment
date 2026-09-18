@@ -1,17 +1,33 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import OnboardingFrame from "../components/onboarding/OnboardingFrame";
 import ChoiceChip from "../components/onboarding/ChoiceChip";
 import { niches } from "../data/onboardingData";
+import { getOnboarding, updateOnboarding } from "../api/onboarding";
 
 const MAX_SELECTIONS = 7;
 
 export default function Niches() {
-  const [selected, setSelected] = useState([
-    "AI & Technology",
-    "Indian Business",
-    "Startups",
-  ]);
+  const navigate = useNavigate();
+  const [selected, setSelected] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Load persisted niches on mount — no default selections
+  useEffect(() => {
+    let isMounted = true;
+    getOnboarding()
+      .then(({ onboarding }) => {
+        if (isMounted && Array.isArray(onboarding.niches) && onboarding.niches.length > 0) {
+          setSelected(onboarding.niches);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const toggleNiche = (label) => {
     setSelected((current) => {
@@ -29,11 +45,26 @@ export default function Niches() {
     });
   };
 
+  const handleContinue = async () => {
+    if (selected.length === 0) return;
+    setIsSaving(true);
+    setError(null);
+    try {
+      await updateOnboarding({ niches: selected });
+      navigate("/voice");
+    } catch (err) {
+      setError(err.message || "Failed to save. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <OnboardingFrame
       step={2}
-      onSkip={() => console.log("skip niches")}
-      onContinue={() => console.log("continue niches", selected)}
+      onSkip={() => navigate("/voice")}
+      onContinue={handleContinue}
+      continueLabel={isSaving ? "Saving…" : "Continue →"}
     >
       {/* Step */}
       <div className="absolute left-[24px] top-[108px]">
@@ -97,6 +128,19 @@ export default function Niches() {
             {selected.length}/7
           </span>
         </div>
+
+        {/* Inline error */}
+        {error && (
+          <p style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: "9px",
+            color: "#FF6B6B",
+            marginTop: "8px",
+            letterSpacing: "0.5px",
+          }}>
+            ✕ {error}
+          </p>
+        )}
       </div>
 
       {/* Niches */}

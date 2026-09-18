@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { getOnboarding, getResumeRoute } from "../api/onboarding";
 
 import "@fontsource/instrument-serif/400-italic.css";
 import "@fontsource/hanken-grotesk/400.css";
@@ -93,7 +94,14 @@ export default function Login() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      navigate("/profession", { replace: true });
+      // Resume at the correct onboarding step instead of always /profession
+      getOnboarding()
+        .then(({ onboarding }) => {
+          navigate(getResumeRoute(onboarding.currentStep), { replace: true });
+        })
+        .catch(() => {
+          navigate("/profession", { replace: true });
+        });
     }
   }, [isAuthenticated, isLoading, navigate]);
 
@@ -102,7 +110,9 @@ export default function Login() {
     onSuccess: async ({ code }) => {
       try {
         await loginWithGoogleCode(code);
-        navigate("/profession");
+        // Navigate to the correct onboarding step, not always /profession
+        const { onboarding } = await getOnboarding();
+        navigate(getResumeRoute(onboarding.currentStep));
       } catch (error) {
         console.error(error.message);
       } finally {
