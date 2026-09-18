@@ -6,18 +6,20 @@ import Profession from "./pages/Profession";
 import Voice from "./pages/Voice";
 import Time from "./pages/Time";
 import Notifications from "./pages/Notifications";
+import AllSet from "./pages/AllSet";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Splash />} />
-        <Route path="/language" element={<Language/>} />
-        <Route path="/login" element={<Login/>} />
+        <Route path="/language" element={<Language />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/profession" element={<Profession />} />
         <Route path="/voice" element={<Voice />} />
         <Route path="/time" element={<Time />} />
         <Route path="/notifications" element={<Notifications />} />
+        <Route path="/all-set" element={<AllSet />} />
 
       </Routes>
     </BrowserRouter>
