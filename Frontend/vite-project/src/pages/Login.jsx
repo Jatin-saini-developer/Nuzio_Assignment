@@ -1,4 +1,7 @@
+import { useEffect, useState } from "react";
+import { useGoogleLogin } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 import "@fontsource/instrument-serif/400-italic.css";
 import "@fontsource/hanken-grotesk/400.css";
@@ -85,6 +88,36 @@ function GoogleIcon() {
 
 export default function Login() {
   const navigate = useNavigate();
+  const { isAuthenticated, isLoading, loginWithGoogleCode } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      navigate("/profession", { replace: true });
+    }
+  }, [isAuthenticated, isLoading, navigate]);
+
+  const googleLogin = useGoogleLogin({
+    flow: "auth-code",
+    onSuccess: async ({ code }) => {
+      try {
+        await loginWithGoogleCode(code);
+        navigate("/profession");
+      } catch (error) {
+        console.error(error.message);
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    onError: () => {
+      setIsSubmitting(false);
+    },
+  });
+
+  const handleGoogleLogin = () => {
+    setIsSubmitting(true);
+    googleLogin();
+  };
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#080808]">
@@ -165,10 +198,9 @@ export default function Login() {
         <div className="absolute bottom-[47px] left-[28px] right-[28px] z-10">
           <button
             type="button"
-            onClick={() => {
-              // Add Google auth here later.
-              console.log("Continue with Google");
-            }}
+            onClick={handleGoogleLogin}
+            disabled={isSubmitting}
+            aria-busy={isSubmitting}
             className="flex h-[57px] w-full items-center justify-center gap-[9px] rounded-[16px] transition-opacity hover:opacity-90"
             style={{
               background: "#242424",

@@ -2,11 +2,13 @@ import "dotenv/config";
 
 import app from "./app.js";
 import { connectDatabase } from "./config/db.js";
+import { validateServerEnv } from "./config/env.js";
 
 const port = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
+    validateServerEnv();
     await connectDatabase();
 
     app.listen(port, () => {

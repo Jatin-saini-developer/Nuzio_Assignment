@@ -22,8 +22,8 @@ const authProviderSchema = new mongoose.Schema(
   {
     provider: {
       type: String,
-      enum: ["local", "google"],
-      default: "local",
+      enum: ["google"],
+      default: "google",
     },
     providerId: {
       type: String,
@@ -86,6 +86,17 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+  },
+);
+
+userSchema.index(
+  { "auth.provider": 1, "auth.providerId": 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      "auth.provider": "google",
+      "auth.providerId": { $type: "string" },
+    },
   },
 );
 

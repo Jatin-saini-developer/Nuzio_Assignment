@@ -1,0 +1,15 @@
+export const toSafeUser = (user) => ({
+  id: user._id.toString(),
+  name: user.name || "",
+  email: user.email || "",
+  avatarUrl: user.avatarUrl || "",
+  language: user.language || "",
+  profession: user.profession || "",
+  niches: user.niches || [],
+  voice: user.voice || "",
+  briefLength: user.briefLength || "medium",
+  deliveryTime: user.deliveryTime || "",
+  notificationPreferences: user.notificationPreferences,
+  createdAt: user.createdAt,
+  updatedAt: user.updatedAt,
+});
