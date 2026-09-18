@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useGoogleLogin } from "@react-oauth/google";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { getOnboarding, getResumeRoute } from "../api/onboarding";
+import { getOnboarding, getResumeRoute, updateOnboarding } from "../api/onboarding";
 
 import "@fontsource/instrument-serif/400-italic.css";
 import "@fontsource/hanken-grotesk/400.css";
@@ -89,20 +89,34 @@ function GoogleIcon() {
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated, isLoading, loginWithGoogleCode } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Language selected on the pre-auth Language screen, carried via router state.
+  // Undefined when the user navigates directly to /login.
+  const pendingLanguage = location.state?.pendingLanguage ?? null;
+
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      // Resume at the correct onboarding step instead of always /profession
-      getOnboarding()
-        .then(({ onboarding }) => {
-          navigate(getResumeRoute(onboarding.currentStep), { replace: true });
-        })
-        .catch(() => {
-          navigate("/profession", { replace: true });
-        });
+      // If a pre-auth language selection arrived, persist it now that we have a session.
+      const persist = pendingLanguage
+        ? updateOnboarding({ language: pendingLanguage }).catch(() => {})
+        : Promise.resolve();
+
+      persist.then(() =>
+        getOnboarding()
+          .then(({ onboarding }) => {
+            navigate(getResumeRoute(onboarding.currentStep), { replace: true });
+          })
+          .catch(() => {
+            navigate("/profession", { replace: true });
+          }),
+      );
     }
+    // pendingLanguage is intentionally excluded from deps — it is stable for the
+    // lifetime of this page render and including it would cause a double-fire.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, isLoading, navigate]);
 
   const googleLogin = useGoogleLogin({
@@ -110,7 +124,13 @@ export default function Login() {
     onSuccess: async ({ code }) => {
       try {
         await loginWithGoogleCode(code);
-        // Navigate to the correct onboarding step, not always /profession
+
+        // Persist the pre-auth language selection immediately after login,
+        // before fetching onboarding state so currentStep is computed correctly.
+        if (pendingLanguage) {
+          await updateOnboarding({ language: pendingLanguage }).catch(() => {});
+        }
+
         const { onboarding } = await getOnboarding();
         navigate(getResumeRoute(onboarding.currentStep));
       } catch (error) {

@@ -1,46 +1,29 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "@fontsource/instrument-serif/400-italic.css";
 import "@fontsource/geist-mono/400.css";
 import "@fontsource/hanken-grotesk/800.css";
 
-import { getOnboarding, updateOnboarding } from "../api/onboarding";
-
+/**
+ * Language selection screen — intentionally pre-authentication.
+ *
+ * This screen is shown BEFORE login, so it must NOT call any
+ * protected backend API (/api/onboarding requires a session cookie).
+ *
+ * The selected language is passed as React Router navigation state
+ * to the Login page so it survives the Language → Login transition.
+ * After Google authentication, Login.jsx reads this state and persists
+ * the language to MongoDB via the authenticated onboarding API.
+ */
 export default function Language() {
   const navigate = useNavigate();
   const [selectedLang, setSelectedLang] = useState("en");
   const [locationEnabled, setLocationEnabled] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState(null);
 
-  // Load persisted language on mount
-  useEffect(() => {
-    let isMounted = true;
-    getOnboarding()
-      .then(({ onboarding }) => {
-        if (isMounted && onboarding.language) {
-          setSelectedLang(onboarding.language);
-        }
-      })
-      .catch(() => {
-        // Non-critical — user may not be authenticated yet at this step
-      });
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  const handleContinue = async () => {
-    setIsSaving(true);
-    setError(null);
-    try {
-      await updateOnboarding({ language: selectedLang });
-      navigate("/login");
-    } catch (err) {
-      setError(err.message || "Failed to save. Please try again.");
-    } finally {
-      setIsSaving(false);
-    }
+  const handleContinue = () => {
+    // Pass the selected language as router state — no API call here.
+    // Login.jsx will persist this after authentication completes.
+    navigate("/login", { state: { pendingLanguage: selectedLang } });
   };
 
   return (
@@ -234,36 +217,20 @@ export default function Language() {
               </button>
             </div>
           </div>
-
-          {/* Inline error */}
-          {error && (
-            <p style={{
-              fontFamily: "'Geist Mono', monospace",
-              fontSize: "9px",
-              color: "#FF6B6B",
-              marginTop: "12px",
-              letterSpacing: "0.5px",
-            }}>
-              ✕ {error}
-            </p>
-          )}
         </div>
 
         {/* Continue button */}
         <div className="px-8 pb-12 z-10">
           <button
             onClick={handleContinue}
-            disabled={isSaving}
             className="w-full py-4 rounded-2xl font-semibold text-white transition-opacity hover:opacity-90"
             style={{
               background: "linear-gradient(135deg, #9080FF 0%, #7060DD 100%)",
               fontSize: "15px",
               letterSpacing: "0.01em",
-              opacity: isSaving ? 0.7 : 1,
-              cursor: isSaving ? "not-allowed" : "pointer",
             }}
           >
-            {isSaving ? "Saving…" : "Continue →"}
+            Continue →
           </button>
         </div>
       </div>
